@@ -1,0 +1,40 @@
+version: '3.1'
+
+services:
+  test-symfony:
+    build: ./docker
+    volumes:
+      - ./:/app
+    ports:
+      - $NGINX_PORT:8000
+    command: ["php", "-S", "0.0.0.0:8000", "-t", "public/"]
+    env_file:
+      - .env
+      - .env.local
+    networks:
+      - net
+    depends_on:
+      - pgsql
+
+  pgsql:
+    container_name: test-symfony-pg
+    image: 'postgres:14'
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    environment:
+      PGPASSWORD: '${DB_PASSWORD:-secret}'
+      POSTGRES_DB: '${DB_DATABASE}'
+      POSTGRES_USER: '${DB_USERNAME}'
+      POSTGRES_PASSWORD: '${DB_PASSWORD:-secret}'
+    volumes:
+      - './var/pgsql:/var/lib/postgresql/data'
+    networks:
+      - net
+    healthcheck:
+      test: ["CMD", "pg_isready", "-q", "-d", "${DB_DATABASE}", "-U", "${DB_USERNAME}"]
+      retries: 3
+      timeout: 5s
+
+networks:
+  net:
+    driver: bridge

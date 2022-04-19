@@ -1,0 +1,101 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}VAT verification{% endblock %}
+
+{% block javascripts %}
+<script>
+    window.addEventListener('load', function() {
+        document.getElementById('vat-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const data = new FormData(event.target);
+            const vat = Object.fromEntries(data).vat;
+            const token = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('token='))
+                .split('=')[1];
+
+            document.getElementById('result').style.display = 'none';
+
+            fetch("/api/vat/" + vat, {
+                method: "POST",
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json',
+                },
+            })
+                .then(response => {
+                    if (response.status == 404) {
+                        const error = 'Invalid number!';
+                        alert(error);
+                        throw new Error(error);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('countryCode').textContent = data.countryCode;
+                    document.getElementById('vatNumber').textContent   = data.vatNumber;
+                    document.getElementById('requestDate').textContent = data.requestDate;
+                    document.getElementById('name').textContent        = data.name;
+                    document.getElementById('address').textContent     = data.address;
+
+                    document.getElementById('result').style.display = 'table';
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+
+        });
+    });
+</script>
+{% endblock %}
+
+{% block body %}
+<style>
+    .example-wrapper { margin: 1em auto; max-width: 800px; width: 95%; font: 18px/1.5 sans-serif; }
+    .example-wrapper code { background: #F5F5F5; padding: 2px 6px; }
+    #result {
+        display: none;
+        border: 1px solid black;
+    }
+    #result td {
+        border: 1px solid black;
+    }
+</style>
+
+<div class="example-wrapper">
+    <h1>VAT verification</h1>
+
+    <form id="vat-form">
+        <table>
+            <tr>
+                <td><label for="vat">vat:</label></td>
+                <td><input type="text" id="vat" name="vat"></td>
+            </tr>
+        </table>
+        <input type="submit" value="Verify">
+
+        <table id="result">
+            <tr>
+                <td>countryCode</td>
+                <td><span id="countryCode"></span></td>
+            </tr>
+            <tr>
+                <td>vatNumber</td>
+                <td><span id="vatNumber"></span></td>
+            </tr>
+            <tr>
+                <td>requestDate</td>
+                <td><span id="requestDate"></span></td>
+            </tr>
+            <tr>
+                <td>name</td>
+                <td><span id="name"></span></td>
+            </tr>
+            <tr>
+                <td>address</td>
+                <td><span id="address"></span></td>
+            </tr>
+        </table>
+    </form>
+</div>
+{% endblock %}
